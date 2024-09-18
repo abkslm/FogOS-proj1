@@ -129,6 +129,7 @@ UPROGS=\
 	$U/_mkdir\
 	$U/_psh\
 	$U/_pv\
+	$U/_pv_tests\
 	$U/_rm\
 	$U/_sh\
 	$U/_stressfs\
