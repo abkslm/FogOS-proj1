@@ -23,14 +23,22 @@ main(void)
   dup(0);  // stdout
   dup(0);  // stderr
 
-  printf(" __________________\n");
-  printf("< Welcome to FogOS >\n");
-  printf(" ------------------\n");
-  printf("        \\   ^__^\n");
-  printf("         \\  (**)\\_______\n");
-  printf("            (__)\\       )\\/\\\n");
-  printf("             U  ||----w |\n");
-  printf("                ||     ||\n");
+  // create /tmp for psh line_count storage
+  if (open("/tmp", O_RDONLY) < 0) {
+    if (mkdir("/tmp") < 0) {
+  	  printf("init: failed to create /tmp\n");
+    }
+  }
+
+
+  // create line_count store for psh
+  int psh_fd = open("/tmp/line_color", O_WRONLY | O_CREATE);
+  if (psh_fd >= 0) {
+  	write(psh_fd, 0, 1);
+  	close(psh_fd);
+  } else {
+  	printf("init: failed to create /tmp/line_color\n");
+  }
 
   for(;;){
     printf("init: starting sh\n");
