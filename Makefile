@@ -116,8 +116,6 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 UPROGS=\
-	$U/_about\
-	$U/_broken\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
@@ -133,7 +131,6 @@ UPROGS=\
 	$U/_rm\
 	$U/_sh\
 	$U/_stressfs\
-	$U/_testgetline\
 	$U/_usertests\
 	$U/_grind\
 	$U/_wc\
