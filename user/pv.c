@@ -29,6 +29,13 @@ main(int argc, char *argv[])
 	int bytes_read;
 	unsigned int total_bytes = 0;
 	int start_time = uptime();
+	struct stat st;
+
+
+	if (fstat(0, &st) >= 0 && st.type == T_DEVICE) {
+		fprintf(2, "pv: no input piped\n");
+		exit(1);
+	}
 
 
 	while ((bytes_read = read(0, buffer, sizeof(buffer))) > 0) {

@@ -3,15 +3,17 @@
 #include "kernel/fs.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
+#include "user/psh.h"
 
 /**
-* psh (pride shell)
+* psh (pride shell) executable toggle
 * run `psh` to toggle
 */
 
-int
-main(int argc, char *argv)
-{
+#define OPEN_MSG "🌈 psh enabled! happy pride! 🌈"
+
+int main (int argc, char *argv) {
+
 	char *filename = "/tmp/psh_toggle";
 	int fd;
 	char buf[2];
@@ -27,7 +29,9 @@ main(int argc, char *argv)
 		buf[0] = '1';
 		buf[1] = '\0';
 		write(fd, buf, 1);
-		printf("psh enabled! happy pride!\n");
+
+		printf("%s\n", OPEN_MSG);
+		set_color();
 
 	} else {
 		read(fd, buf, 1);
@@ -35,9 +39,13 @@ main(int argc, char *argv)
 
 		close(fd);
 
-		int bit = buf[0] - '0';
+		// i wanted to do some bitwise stuff here (i was feeling special)
+		// it just does an XOR to either turn it on or off
+		// (if the number in the toggle file is 1 (on), it changes to 0 (off), and vice versa)
 
-		bit = bit ^ 1;
+		int toggle = buf[0] - '0';
+
+		toggle = toggle ^ 1;
 
 		fd = open(filename, O_WRONLY);
 		if (fd < 0) {
@@ -45,11 +53,12 @@ main(int argc, char *argv)
 			exit(1);
 		}
 
-		buf[0] = bit + '0';
+		buf[0] = toggle + '0';
 		write(fd, buf, 1);
 
-		if (bit == 1) {
-			printf("psh enabled! happy pride!\n");
+		if (toggle == 1) {
+			printf("%s\n", OPEN_MSG);
+			set_color();
 		} else {
 		    printf("\033[0mpsh disabled. you really afraid of rainbows? :(\n", buf[0]);
 		}
@@ -59,4 +68,5 @@ main(int argc, char *argv)
 
 	close(fd);
 	exit(0);
+	
 }

@@ -106,6 +106,21 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o $U/umalloc.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
+# Compile psh_accessories.c
+$U/psh_accessories.o: $U/psh_accessories.c
+	$(CC) $(CFLAGS) -c -o $U/psh_accessories.o $U/psh_accessories.c
+
+# Link _sh including psh_accessories.o
+$U/_sh: $U/sh.o $U/psh_accessories.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $U/_sh $U/sh.o $U/psh_accessories.o $(ULIB)
+	$(OBJDUMP) -S $U/_sh > $U/sh.asm
+	$(OBJDUMP) -t $U/_sh | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/sh.sym
+# Link _psh including psh_accessories.o
+$U/_psh: $U/psh.o $U/psh_accessories.o $(ULIB)
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $U/_psh $U/psh.o $U/psh_accessories.o $(ULIB)
+	$(OBJDUMP) -S $U/_psh > $U/psh.asm
+	$(OBJDUMP) -t $U/_psh | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/psh.sym
+   
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
@@ -136,8 +151,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 
-fs.img: mkfs/mkfs README.md $(UPROGS)
-	mkfs/mkfs fs.img README.md $(UPROGS)
+fs.img: mkfs/mkfs README.md time-machine.txt $(UPROGS)
+	mkfs/mkfs fs.img README.md time-machine.txt $(UPROGS)	
 
 -include kernel/*.d user/*.d
 

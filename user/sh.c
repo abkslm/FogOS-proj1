@@ -3,6 +3,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
+#include "user/psh.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -54,93 +55,6 @@ void panic(char*);
 struct cmd *parsecmd(char*);
 void runcmd(struct cmd*) __attribute__((noreturn));
 
-// psh
-
-char *colors_256[] = {
-
-    "\033[38;5;196m",  // Red
-    "\033[38;5;202m",  // Light Red/Orange
-    "\033[38;5;208m",  // Orange
-    "\033[38;5;214m",  // Light Orange
-    "\033[38;5;226m",  // Yellow
-    "\033[38;5;190m",  // Light Yellow/Green
-    "\033[38;5;46m",   // Green
-    "\033[38;5;83m",   // Light Green
-    "\033[38;5;51m",   // Cyan
-    "\033[38;5;81m",   // Light Cyan
-    "\033[38;5;111m",  // Sky Blue (Lighter Blue)
-    "\033[38;5;69m",   // Teal/Light Blue
-    "\033[38;5;33m",   // Dark Blue
-    "\033[38;5;201m",  // Magenta
-    "\033[38;5;207m",  // Light Magenta
-	
-};
-
-int line_count = 0;
-
-int
-read_line_count()
-{
-	int fd, line_count = 0;
-	fd = open("/tmp/line_count", O_RDONLY);
-	if (fd >= 0) {
-		read(fd, &line_count, sizeof(line_count));
-		close(fd);
-	}
-	return line_count;
-}
-
-void
-save_line_count(int line_count)
-{
-	int fd = open("/tmp/line_count", O_WRONLY | O_CREATE);
-	write(fd, &line_count, sizeof(line_count));
-	close(fd);
-}
-
-int
-is_psh_enabled()
-{
-	int fd;
-	char buf[2];
-
-	fd = open("/tmp/psh_toggle", O_RDONLY);
-
-	if (fd < 0) {
-		return 0;
-	}
-
-	read(fd, buf, 1);
-	buf[1] = '\0';
-
-	close(fd);
-
-	return (buf[0] == '1') ? 1 : 0;
-}
-
-void
-reset_color()
-{
-	printf("\033[0m");
-}
-
-void
-set_next_color()
-{
-
-	if (is_psh_enabled()) {
-		int line_count = read_line_count();
-		printf("%s", colors_256[line_count % (sizeof(colors_256) / sizeof(colors_256[0]) - 1)]);
-		line_count++;
-		save_line_count(line_count);
-	} else {
-		reset_color();
-	}
-}
-
-
-
-
 
 // Execute cmd.  Never returns.
 void
@@ -156,11 +70,8 @@ runcmd(struct cmd *cmd)
   if(cmd == 0)
     exit(1);
 
-  if (is_psh_enabled()) {
-  	set_next_color(); //psh
-  } else {
-  	reset_color();
-  }
+  // PSH -> changes color if psh is enabled
+  increment_color();
 
 
   switch(cmd->type){
@@ -268,6 +179,7 @@ main(void)
       	fprintf(2, "cannot cd %s\n", buf + 3);
       
       continue;
+
     }
     if(fork1() == 0)
       runcmd(parsecmd(buf));

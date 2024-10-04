@@ -4,41 +4,9 @@
 #include "kernel/fcntl.h"
 
 #define BUFFER_SIZE 1024
-#define TEST_FILE "test_input.txt"
+//updated to use a long file "time-machine.txt" as test input
+#define TEST_FILE "time-machine.txt" 
 #define OUTPUT_FILE "test_output.txt"
-
-
-/**
-* writes a test file given contents.
-* 
-* @param content What to write to file
-*/
-void
-create_test_file(char *content)
-{
-
-	// delete file if exists
-	struct stat st;
-
-    if (stat(TEST_FILE, &st) == 0) {
-    	printf("File exists, deleting file.\n");
-    	if (unlink(TEST_FILE) < 0) {
-    		printf("Failed to delete file.\n");
-    		exit(1);
-    	}
-    } 
-
-	// create if file dne
-    int fd = open(TEST_FILE, O_CREATE | O_WRONLY);
-    if (fd < 0) {
-        printf("Failed to create test file\n");
-        exit(1);
-    }
-    
-    write(fd, content, strlen(content));
-    close(fd);
-}
-
 
 /**
 * checks if pv correctly transfers data from input to output.
@@ -46,16 +14,13 @@ create_test_file(char *content)
 void
 test_pv_data_transfer()
 {
-    char *test_content = "This is a test file for pv.\n";
-    create_test_file(test_content);
-
     int pid = fork();
     if (pid == 0) { // child process
     
         // closes stdin/out and replaces them w the test files
         // (so pv doesn't try to read from terminal + print pv output)
         close(0);
-        open(TEST_FILE, O_RDONLY);
+        open(TEST_FILE, O_RDONLY); //time-machine.txt
         close(1);
         open(OUTPUT_FILE, O_CREATE | O_WRONLY);
         
@@ -66,23 +31,50 @@ test_pv_data_transfer()
     } else { // parent process
         wait(0);
        
-        int fd = open(OUTPUT_FILE, O_RDONLY);
-        if (fd < 0) {
+     wait(0);
+
+        // Open both input (time-machine.txt) and output (test_output.txt) files
+        int input_fd = open(TEST_FILE, O_RDONLY);
+        if (input_fd < 0) {
+            printf("FAIL: Could not open input file\n");
+            exit(1);
+        }
+
+        int output_fd = open(OUTPUT_FILE, O_RDONLY);
+        if (output_fd < 0) {
             printf("FAIL: Could not open output file\n");
             exit(1);
         }
 
-		// reads output into buf
-        char buf[BUFFER_SIZE];
-        
-        read(fd, buf, BUFFER_SIZE);
-        close(fd);
+        char input_buf[BUFFER_SIZE];
+        char output_buf[BUFFER_SIZE];
+        int input_bytes, output_bytes;
 
-		// makes sure the test was copied correctly
-        if (strcmp(buf, test_content) != 0) {
-            printf("FAIL: Output does not match input\nTest content: '%s'\nOutput: '%s'\n", test_content, buf);
+        // compate contents chunk by chunk
+        while ((input_bytes = read(input_fd, input_buf, BUFFER_SIZE)) > 0) {
+            output_bytes = read(output_fd, output_buf, BUFFER_SIZE);
+
+            //if num  bytes doesn't match, fail 
+            if (input_bytes != output_bytes) {
+                printf("FAIL: Input and output file sizes differ\n");
+                exit(1);
+            }
+
+            // if contents don't match, fail 
+            if (memcmp(input_buf, output_buf, input_bytes) != 0) {
+                printf("FAIL: Input and output file contents differ\n");
+                exit(1);
+            }
+        }
+
+        //check if the end of output also reached
+        if ((output_bytes = read(output_fd, output_buf, BUFFER_SIZE)) > 0) {
+            printf("FAIL: Output file is longer than input file\n");
             exit(1);
         }
+
+        close(input_fd);
+        close(output_fd);
 
         printf("PASS: pv data transfer test\n");
     }
@@ -94,14 +86,12 @@ test_pv_data_transfer()
 void
 test_pv_progress_output()
 {
-    char *test_content = "This is a longerrrrrrrrrrrrrrrrr test file for pv.\n";	//TODO why does this print but not ^
-    create_test_file(test_content);
 
     int pid = fork();
     if (pid == 0) { // child
-    	// replace std in w test file
+    	// replace std in w/ test file
         close(0);
-        open(TEST_FILE, O_RDONLY);
+        open(TEST_FILE, O_RDONLY); //time-machine.txt
 
         // run pv on test file
         char *argv[] = {"pv", 0};
